@@ -19,18 +19,15 @@ class BlogPostTemplate extends React.Component<
 > {
   render() {
     const post = get(this.props, 'data.contentfulBlogPost')
-
-    if (!post?.description || !post?.body) {
-      return
-    }
+    if (!post) return null
 
     const previous = get(this.props, 'data.previous')
     const next = get(this.props, 'data.next')
-    const plainTextDescription = documentToPlainTextString(
-      JSON.parse(post.description.raw!)
-    )
-    const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw!))
-    const { minutes: timeToRead } = readingTime(plainTextBody)
+    const plainTextDescription = post?.description?.raw
+      ? documentToPlainTextString(JSON.parse(post.description.raw))
+      : undefined
+    // const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw!))
+    // const { minutes: timeToRead } = readingTime(plainTextBody)
 
     const options = {
       renderNode: {
@@ -58,13 +55,37 @@ class BlogPostTemplate extends React.Component<
         <div className={styles.container}>
           <span className={styles.meta}>
             {post.author?.name} &middot;{' '}
-            <time dateTime={post.rawDate!}>{post.publishDate}</time> –{' '}
-            {timeToRead} minute read
+            <time dateTime={post.rawDate!}>{post.publishDate}</time>
           </span>
           <div className={styles.article}>
             <div className={styles.body}>
-              {/* @ts-ignore */}
-              {post.body?.raw && renderRichText(post.body, options)}
+              {post.modules?.map((m, i) => {
+                switch (m?.__typename) {
+                  case 'ContentfulTextBlock':
+                    return (
+                      <>
+                        <h2>{m.title}</h2>
+                        {/* @ts-ignore */}
+                        {m.body?.raw ? renderRichText(m.body, options) : null}
+                      </>
+                    )
+                  case 'ContentfulImageBlock':
+                    return (
+                      <>
+                        <h2>{m.title}</h2>
+                        {m.image?.gatsbyImage && (
+                          <GatsbyImage
+                            className={styles.image}
+                            alt={m.title!}
+                            image={m.image?.gatsbyImage}
+                          />
+                        )}
+                      </>
+                    )
+                  default:
+                    return null
+                }
+              })}
             </div>
             <Tags tags={post.tags} />
             {(previous || next) && (
@@ -116,8 +137,23 @@ export const pageQuery = graphql`
           src
         }
       }
-      body {
-        raw
+      modules {
+        __typename
+        ... on ContentfulTextBlock {
+          title
+          body {
+            raw
+          }
+        }
+        ... on ContentfulImageBlock {
+          title
+          image {
+            gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
+            resize(height: 630, width: 1200) {
+              src
+            }
+          }
+        }
       }
       tags
       description {
