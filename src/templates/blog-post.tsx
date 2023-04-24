@@ -82,6 +82,17 @@ class BlogPostTemplate extends React.Component<
                         )}
                       </>
                     )
+                  case 'ContentfulRepeater':
+                    return (
+                      <>
+                        <h2>{m.title}</h2>
+                        {m.entries?.map((e, i) => (
+                          <div key={i}>
+                            <strong>{e?.key}:</strong> {e?.value}
+                          </div>
+                        ))}
+                      </>
+                    )
                   default:
                     return null
                 }
@@ -139,6 +150,13 @@ export const pageQuery = graphql`
       }
       modules {
         __typename
+        ... on ContentfulRepeater {
+          title
+          entries {
+            key
+            value
+          }
+        }
         ... on ContentfulTextBlock {
           title
           body {
