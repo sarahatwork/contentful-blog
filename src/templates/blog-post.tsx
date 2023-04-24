@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, graphql } from 'gatsby'
+import { Link, PageProps, graphql } from 'gatsby'
 import get from 'lodash/get'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer'
@@ -11,39 +11,44 @@ import Seo from '../components/seo'
 import Layout from '../components/layout'
 import Hero from '../components/hero'
 import Tags from '../components/tags'
+// @ts-ignore
 import * as styles from './blog-post.module.css'
 
-class BlogPostTemplate extends React.Component {
+class BlogPostTemplate extends React.Component<
+  PageProps<Queries.BlogPostBySlugQuery>
+> {
   render() {
     const post = get(this.props, 'data.contentfulBlogPost')
+
+    if (!post?.description || !post?.body) {
+      return
+    }
+
     const previous = get(this.props, 'data.previous')
     const next = get(this.props, 'data.next')
     const plainTextDescription = documentToPlainTextString(
-      JSON.parse(post.description.raw)
+      JSON.parse(post.description.raw!)
     )
-    const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw))
+    const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw!))
     const { minutes: timeToRead } = readingTime(plainTextBody)
-    
+
     const options = {
       renderNode: {
         [BLOCKS.EMBEDDED_ASSET]: (node) => {
-        const { gatsbyImage, description } = node.data.target
-        return (
-           <GatsbyImage
-              image={getImage(gatsbyImage)}
-              alt={description}
-           />
-         )
+          const { gatsbyImage, description } = node.data.target
+          return (
+            <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
+          )
         },
       },
-    };
+    }
 
     return (
       <Layout location={this.props.location}>
         <Seo
           title={post.title}
           description={plainTextDescription}
-          image={`http:${post.heroImage.resize.src}`}
+          image={`http:${post.heroImage?.resize?.src}`}
         />
         <Hero
           image={post.heroImage?.gatsbyImage}
@@ -53,11 +58,12 @@ class BlogPostTemplate extends React.Component {
         <div className={styles.container}>
           <span className={styles.meta}>
             {post.author?.name} &middot;{' '}
-            <time dateTime={post.rawDate}>{post.publishDate}</time> –{' '}
+            <time dateTime={post.rawDate!}>{post.publishDate}</time> –{' '}
             {timeToRead} minute read
           </span>
           <div className={styles.article}>
             <div className={styles.body}>
+              {/* @ts-ignore */}
               {post.body?.raw && renderRichText(post.body, options)}
             </div>
             <Tags tags={post.tags} />
@@ -112,7 +118,6 @@ export const pageQuery = graphql`
       }
       body {
         raw
-        
       }
       tags
       description {
