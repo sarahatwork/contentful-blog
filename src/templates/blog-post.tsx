@@ -1,11 +1,10 @@
-import React from 'react'
+import React, { Fragment } from 'react'
 import { Link, PageProps, graphql } from 'gatsby'
 import get from 'lodash/get'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer'
 import { BLOCKS } from '@contentful/rich-text-types'
 import { GatsbyImage, getImage } from 'gatsby-plugin-image'
-import readingTime from 'reading-time'
 
 import Seo from '../components/seo'
 import Layout from '../components/layout'
@@ -13,6 +12,7 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
+import { GraphQLSchema } from 'graphql'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -28,6 +28,7 @@ class BlogPostTemplate extends React.Component<
       : undefined
     // const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw!))
     // const { minutes: timeToRead } = readingTime(plainTextBody)
+    console.log(this.props.data)
 
     const options = {
       renderNode: {
@@ -63,35 +64,34 @@ class BlogPostTemplate extends React.Component<
                 switch (m?.__typename) {
                   case 'ContentfulTextBlock':
                     return (
-                      <>
+                      <Fragment key={i}>
                         <h2>{m.title}</h2>
                         {/* @ts-ignore */}
                         {m.body?.raw ? renderRichText(m.body, options) : null}
-                      </>
+                      </Fragment>
                     )
                   case 'ContentfulImageBlock':
                     return (
-                      <>
+                      <Fragment key={i}>
                         <h2>{m.title}</h2>
                         {m.image?.gatsbyImage && (
                           <GatsbyImage
-                            className={styles.image}
                             alt={m.title!}
                             image={m.image?.gatsbyImage}
                           />
                         )}
-                      </>
+                      </Fragment>
                     )
                   case 'ContentfulRepeater':
                     return (
-                      <>
+                      <Fragment key={i}>
                         <h2>{m.title}</h2>
                         {m.entries?.map((e, i) => (
                           <div key={i}>
                             <strong>{e?.key}:</strong> {e?.value}
                           </div>
                         ))}
-                      </>
+                      </Fragment>
                     )
                   default:
                     return null
@@ -134,6 +134,9 @@ export const pageQuery = graphql`
     $previousPostSlug: String
     $nextPostSlug: String
   ) {
+    # coolEntry {
+    #   testFieldName
+    # }
     contentfulBlogPost(slug: { eq: $slug }) {
       slug
       title
@@ -156,6 +159,34 @@ export const pageQuery = graphql`
             key
             value
           }
+        }
+        ... on ContentfulRepeaterV2 {
+          title
+          testing {
+            entries {
+              __typename
+              ... on RepeaterEntryText {
+                text
+              }
+              ... on RepeaterEntryMedia {
+                media {
+                  url
+                }
+              }
+            }
+          }
+          # testingMedia {
+          #   id
+          #   properties {
+          #     name
+          #     type
+          #     value {
+          #       sys {
+          #         id
+          #       }
+          #     }
+          #   }
+          # }
         }
         ... on ContentfulTextBlock {
           title

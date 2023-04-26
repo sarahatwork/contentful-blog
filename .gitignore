@@ -75,3 +75,6 @@ Thumbs.db
 
 # Gatsby types
 src/gatsby-types.d.ts
+
+# Contentful export
+contentful-export-*
