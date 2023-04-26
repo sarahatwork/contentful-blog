@@ -12,7 +12,6 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
-import { GraphQLSchema } from 'graphql'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -26,8 +25,6 @@ class BlogPostTemplate extends React.Component<
     const plainTextDescription = post?.description?.raw
       ? documentToPlainTextString(JSON.parse(post.description.raw))
       : undefined
-    // const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw!))
-    // const { minutes: timeToRead } = readingTime(plainTextBody)
     console.log(this.props.data)
 
     const options = {
@@ -91,6 +88,33 @@ class BlogPostTemplate extends React.Component<
                             <strong>{e?.key}:</strong> {e?.value}
                           </div>
                         ))}
+                      </Fragment>
+                    )
+                  case 'ContentfulRepeaterV2':
+                    return (
+                      <Fragment key={i}>
+                        <h2>{m.title}</h2>
+                        {m.testing?.map((entry, i) => {
+                          return (
+                            <div key={i}>
+                              <h1>Entry {i + 1}</h1>
+                              {entry?.entryProperties.map((property, j) => {
+                                switch (property.__typename) {
+                                  case 'RepeaterPropertyText':
+                                    return <p key={j}>{property.text}</p>
+                                  case 'RepeaterPropertyMedia':
+                                    return (
+                                      <GatsbyImage
+                                        key={j}
+                                        alt={'Missing alt'}
+                                        image={property.media.gatsbyImage!}
+                                      />
+                                    )
+                                }
+                              })}
+                            </div>
+                          )
+                        })}
                       </Fragment>
                     )
                   default:
@@ -162,17 +186,28 @@ export const pageQuery = graphql`
         }
         ... on ContentfulRepeaterV2 {
           title
+
           testing {
-            entries {
+            entryProperties {
               __typename
-              ... on RepeaterEntryText {
+              ... on RepeaterPropertyText {
                 text
               }
-              ... on RepeaterEntryMedia {
+              ... on RepeaterPropertyMedia {
                 media {
-                  url
+                  gatsbyImage(
+                    layout: FULL_WIDTH
+                    placeholder: BLURRED
+                    width: 1280
+                  )
+                  resize(height: 630, width: 1200) {
+                    src
+                  }
                 }
               }
+            }
+            internal {
+              content
             }
           }
           # testingMedia {

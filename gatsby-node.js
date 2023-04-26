@@ -52,94 +52,99 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
   }
 }
 
-// exports.createSchemaCustomization = ({ actions }) => {
-//   const { createTypes } = actions
-
-//   createTypes(`
-//     type MyContentfulEntry implements Node {
-//       testFieldName: String!
-//     }
-//   `)
-// }
-//   actions.createFieldExtension({
-//     name: 'fieldItems',
-//     // args: {
-//     //   sanitize: {
-//     //     type: 'Boolean!',
-//     //     defaultValue: true,
-//     //   },
-//     // },
-//     // The extension `args` (above) are passed to `extend` as
-//     // the first argument (`options` below)
-//     extend(options, prevFieldConfig) {
-//       console.log('=====hello', prevFieldConfig)
-//       return {
-//         // args: {
-//         //   sanitize: 'Boolean',
-//         // },
-//         resolve(source, args, context, info) {
-//           const fieldValue = context.defaultFieldResolver(
-//             source,
-//             args,
-//             context,
-//             info
-//           )
-//           console.log('=====', fieldValue)
-//           return fieldValue
-//         },
-//       }
-//     },
-//   })
-// }
-
 exports.createSchemaCustomization = ({ actions, intermediateSchema }) => {
   const { createTypes } = actions
 
   createTypes(`
-    type RepeaterEntryText implements Node {
+    type RepeaterPropertyText implements Node {
       text: String!
     }
 
-    type RepeaterEntryMedia implements Node {
+    type RepeaterPropertyMedia implements Node {
       media: ContentfulAsset!
     }
 
-    union RepeaterEntry = RepeaterEntryText | RepeaterEntryMedia
+    union RepeaterProperty = RepeaterPropertyText | RepeaterPropertyMedia
 
+    # this is temporary
     type ContentfulRepeaterV2TestingJsonNode {
-      entries: [RepeaterEntry!]!
+      entryProperties: [RepeaterProperty!]!
     }
   `)
 }
 
-exports.createResolvers = ({ createResolvers, intermediateSchema }) => {
+exports.createResolvers = async ({
+  createResolvers,
+  intermediateSchema,
+  getNode,
+  ...props
+}) => {
   const typeMap = intermediateSchema.getTypeMap()
-  const jsonNodeTypes = intermediateSchema
-    .getPossibleTypes(typeMap.Node)
-    .map((t) => t.name)
-    .filter((name) => name.endsWith('JsonNode'))
-  // console.log(jsonNodeTypes)
+  const contentfulEntryTypes = intermediateSchema.getPossibleTypes(
+    typeMap.ContentfulEntry
+  )
+  const entriesWithJsonFields = []
+  contentfulEntryTypes.forEach((graphqlType) => {
+    const fields = []
+    Object.values(graphqlType.getFields()).forEach((fieldData) => {
+      if (fieldData.type.ofType?.name?.endsWith('JsonNode')) {
+        fields.push(fieldData)
+      }
+    })
+
+    if (fields.length) {
+      entriesWithJsonFields.push({
+        name: graphqlType.name,
+        fields,
+      })
+    }
+  })
+
+  const entryType = entriesWithJsonFields[1] // temp
+
+  let contentfulAssets
+
   createResolvers({
-    // Query: {
-    //   contentfulBlogPostEnhanced: {
-    //     type: '',
-    //   },
-    // },
     contentfulRepeaterV2TestingJsonNode: {
-      // ContentfulRepeaterV2: {
-      entries: {
-        type: '[RepeaterEntry!]!',
-        resolve(...args) {
-          console.log('====args', args)
-          return [
-            {
-              __typename: 'RepeaterEntryText',
-              text: 'hello',
-              internal: {
-                type: 'RepeaterEntryText',
-              },
-            },
-          ]
+      entryProperties: {
+        type: '[RepeaterProperty!]!',
+        async resolve({ properties }, _args, { nodeModel }) {
+          const entryProperties = []
+          for (const p of properties) {
+            switch (p.type) {
+              case 'text':
+                entryProperties.push({
+                  __typename: 'RepeaterPropertyText',
+                  text: p.value,
+                  internal: {
+                    type: 'RepeaterPropertyText',
+                  },
+                })
+                break
+              case 'media':
+                if (!contentfulAssets) {
+                  contentfulAssets = Array.from(
+                    (
+                      await nodeModel.findAll({
+                        type: 'ContentfulAsset',
+                      })
+                    ).entries
+                  )
+                }
+                const media = contentfulAssets.find(
+                  (a) => a.contentful_id === p.value.sys.id
+                )
+                entryProperties.push({
+                  __typename: 'RepeaterPropertyMedia',
+                  media,
+                  internal: {
+                    type: 'RepeaterPropertyMedia',
+                  },
+                })
+                break
+            }
+          }
+          return entryProperties
         },
       },
     },
