@@ -115,6 +115,28 @@ class BlogPostTemplate extends React.Component<
                             </div>
                           )
                         })}
+                        <h3>Field 2</h3>
+                        {m.testingMedia?.map((entry, i) => {
+                          return (
+                            <div key={i}>
+                              <h1>Entry {i + 1}</h1>
+                              {entry?.entryProperties.map((property, j) => {
+                                switch (property.__typename) {
+                                  case 'RepeaterPropertyText':
+                                    return <p key={j}>{property.text}</p>
+                                  case 'RepeaterPropertyMedia':
+                                    return (
+                                      <GatsbyImage
+                                        key={j}
+                                        alt={'Missing alt'}
+                                        image={property.media.gatsbyImage!}
+                                      />
+                                    )
+                                }
+                              })}
+                            </div>
+                          )
+                        })}
                       </Fragment>
                     )
                   default:
@@ -153,14 +175,25 @@ class BlogPostTemplate extends React.Component<
 export default BlogPostTemplate
 
 export const pageQuery = graphql`
+  fragment Repeater on RepeaterProperty {
+    __typename
+    ... on RepeaterPropertyText {
+      text
+    }
+    ... on RepeaterPropertyMedia {
+      media {
+        gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
+        resize(height: 630, width: 1200) {
+          src
+        }
+      }
+    }
+  }
   query BlogPostBySlug(
     $slug: String!
     $previousPostSlug: String
     $nextPostSlug: String
   ) {
-    # coolEntry {
-    #   testFieldName
-    # }
     contentfulBlogPost(slug: { eq: $slug }) {
       slug
       title
@@ -189,39 +222,14 @@ export const pageQuery = graphql`
 
           testing {
             entryProperties {
-              __typename
-              ... on RepeaterPropertyText {
-                text
-              }
-              ... on RepeaterPropertyMedia {
-                media {
-                  gatsbyImage(
-                    layout: FULL_WIDTH
-                    placeholder: BLURRED
-                    width: 1280
-                  )
-                  resize(height: 630, width: 1200) {
-                    src
-                  }
-                }
-              }
-            }
-            internal {
-              content
+              ...Repeater
             }
           }
-          # testingMedia {
-          #   id
-          #   properties {
-          #     name
-          #     type
-          #     value {
-          #       sys {
-          #         id
-          #       }
-          #     }
-          #   }
-          # }
+          testingMedia {
+            entryProperties {
+              ...Repeater
+            }
+          }
         }
         ... on ContentfulTextBlock {
           title
