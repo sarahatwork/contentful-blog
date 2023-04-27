@@ -52,7 +52,9 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
   }
 }
 
-exports.createSchemaCustomization = ({ actions, intermediateSchema }) => {
+const repeaterFields = []
+
+exports.createSchemaCustomization = ({ actions }) => {
   const { createTypes } = actions
 
   createTypes(`
@@ -65,57 +67,38 @@ exports.createSchemaCustomization = ({ actions, intermediateSchema }) => {
     }
 
     union RepeaterProperty = RepeaterPropertyText | RepeaterPropertyMedia
-
-    # this is temporary
-    type ContentfulRepeaterV2TestingJsonNode {
-      entryProperties: [RepeaterProperty!]!
-    }
   `)
 }
 
-exports.createResolvers = async ({
-  createResolvers,
-  intermediateSchema,
-  getNode,
-  ...props
-}) => {
+exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   const typeMap = intermediateSchema.getTypeMap()
   const contentfulEntryTypes = intermediateSchema.getPossibleTypes(
     typeMap.ContentfulEntry
   )
-  const entriesWithJsonFields = []
   contentfulEntryTypes.forEach((graphqlType) => {
-    const fields = []
     Object.values(graphqlType.getFields()).forEach((fieldData) => {
-      if (fieldData.type.ofType?.name?.endsWith('JsonNode')) {
-        fields.push(fieldData)
+      if (fieldData.type.ofType?.getFields?.()?.repeaterProperties) {
+        repeaterFields.push(fieldData.type.ofType.name)
       }
     })
-
-    if (fields.length) {
-      entriesWithJsonFields.push({
-        name: graphqlType.name,
-        fields,
-      })
-    }
   })
-
-  const entryType = entriesWithJsonFields[1] // temp
 
   let contentfulAssets
 
-  createResolvers({
-    contentfulRepeaterV2TestingJsonNode: {
+  const resolvers = repeaterFields.reduce((acc, fieldName) => {
+    acc[fieldName] = {
       entryProperties: {
         type: '[RepeaterProperty!]!',
-        async resolve({ properties }, _args, { nodeModel }) {
+        async resolve({ repeaterProperties }, _args, { nodeModel }) {
           const entryProperties = []
-          for (const p of properties) {
+          for (const p of repeaterProperties) {
+            const { type, data } = p
+            const value = JSON.parse(data)
             switch (p.type) {
               case 'text':
                 entryProperties.push({
                   __typename: 'RepeaterPropertyText',
-                  text: p.value,
+                  text: value,
                   internal: {
                     type: 'RepeaterPropertyText',
                   },
@@ -132,7 +115,7 @@ exports.createResolvers = async ({
                   )
                 }
                 const media = contentfulAssets.find(
-                  (a) => a.contentful_id === p.value.sys.id
+                  (a) => a.contentful_id === value.sys.id
                 )
                 entryProperties.push({
                   __typename: 'RepeaterPropertyMedia',
@@ -147,6 +130,9 @@ exports.createResolvers = async ({
           return entryProperties
         },
       },
-    },
-  })
+    }
+    return acc
+  }, {})
+
+  createResolvers(resolvers)
 }
