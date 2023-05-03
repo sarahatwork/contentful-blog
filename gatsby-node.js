@@ -67,7 +67,8 @@ exports.createSchemaCustomization = ({ actions }) => {
     }
 
     type RepeaterPropertyRichText implements Node {
-      richText: String!
+      richTextRaw: String!
+      richTextReferences: [ContentfulAsset!]!
     }
 
     union RepeaterProperty = 
@@ -97,15 +98,40 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
       entryProperties: {
         type: '[RepeaterProperty!]!',
         async resolve({ repeaterProperties }, _args, { nodeModel }) {
+          const getContentfulAsset = async (id) => {
+            if (!contentfulAssets) {
+              contentfulAssets = Array.from(
+                (
+                  await nodeModel.findAll({
+                    type: 'ContentfulAsset',
+                  })
+                ).entries
+              )
+            }
+            return contentfulAssets.find((a) => a.contentful_id === id)
+          }
+
           const entryProperties = []
           for (const p of repeaterProperties) {
             const { type, data } = p
             const value = JSON.parse(data)
             switch (type) {
               case 'richText':
+                const richTextReferences = []
+
+                for (const ref of value.references) {
+                  if (ref.type === 'Asset') {
+                    const asset = await getContentfulAsset(ref.contentful_id)
+                    richTextReferences.push(asset)
+                  } else {
+                    // todo find entries
+                  }
+                }
+
                 entryProperties.push({
                   __typename: 'RepeaterPropertyRichText',
-                  richText: data,
+                  richTextRaw: data,
+                  richTextReferences,
                   internal: {
                     type: 'RepeaterPropertyRichText',
                   },
@@ -121,18 +147,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                 })
                 break
               case 'media':
-                if (!contentfulAssets) {
-                  contentfulAssets = Array.from(
-                    (
-                      await nodeModel.findAll({
-                        type: 'ContentfulAsset',
-                      })
-                    ).entries
-                  )
-                }
-                const media = contentfulAssets.find(
-                  (a) => a.contentful_id === value.sys.id
-                )
+                const media = await getContentfulAsset(value.sys.id)
                 entryProperties.push({
                   __typename: 'RepeaterPropertyMedia',
                   media,

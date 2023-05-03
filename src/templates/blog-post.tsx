@@ -12,7 +12,6 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
-import { documentToReactComponents } from '@contentful/rich-text-react-renderer'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -29,14 +28,15 @@ class BlogPostTemplate extends React.Component<
     console.log(this.props.data)
 
     const options = {
-      // renderNode: {
-      //   [BLOCKS.EMBEDDED_ASSET]: (node) => {
-      //     const { gatsbyImage, description } = node.data.target
-      //     return (
-      //       <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
-      //     )
-      //   },
-      // }
+      renderNode: {
+        [BLOCKS.EMBEDDED_ASSET]: (node) => {
+          console.log('=====node', node)
+          const { gatsbyImage, description } = node.data.target
+          return (
+            <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
+          )
+        },
+      },
     }
 
     return (
@@ -106,10 +106,15 @@ class BlogPostTemplate extends React.Component<
                                   case 'RepeaterPropertyRichText':
                                     return (
                                       <p key={j}>
-                                        {renderRichText({
-                                          raw: property.richText,
-                                          references: [],
-                                        })}
+                                        {renderRichText(
+                                          {
+                                            raw: property.richTextRaw,
+                                            // @ts-ignore
+                                            references:
+                                              property.richTextReferences,
+                                          },
+                                          options
+                                        )}
                                       </p>
                                     )
                                   case 'RepeaterPropertyMedia':
@@ -142,6 +147,32 @@ class BlogPostTemplate extends React.Component<
                                         alt={'Missing alt'}
                                         image={property.media.gatsbyImage!}
                                       />
+                                    )
+                                }
+                              })}
+                            </div>
+                          )
+                        })}
+                        <h3>Field 3</h3>
+                        {m.richText?.map((entry, i) => {
+                          return (
+                            <div key={i}>
+                              <h1>Entry {i + 1}</h1>
+                              {entry?.entryProperties.map((property, j) => {
+                                switch (property.__typename) {
+                                  case 'RepeaterPropertyRichText':
+                                    return (
+                                      <p key={j}>
+                                        {renderRichText(
+                                          {
+                                            raw: property.richTextRaw,
+                                            // @ts-ignore
+                                            references:
+                                              property.richTextReferences,
+                                          },
+                                          options
+                                        )}
+                                      </p>
                                     )
                                 }
                               })}
@@ -192,7 +223,21 @@ export const pageQuery = graphql`
       text
     }
     ... on RepeaterPropertyRichText {
-      richText
+      richTextRaw
+      richTextReferences {
+        __typename
+        ... on ContentfulAsset {
+          contentful_id
+          gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
+          resize(height: 630, width: 1200) {
+            src
+          }
+        }
+        # ... on ContentfulBlogPost {
+        #   title
+        #   slug
+        # }
+      }
     }
     ... on RepeaterPropertyMedia {
       media {
@@ -244,6 +289,11 @@ export const pageQuery = graphql`
               ...Repeater
             }
           }
+          richText {
+            entryProperties {
+              ...Repeater
+            }
+          }
         }
         ... on ContentfulTextBlock {
           title
@@ -251,6 +301,21 @@ export const pageQuery = graphql`
             raw
             references {
               __typename
+              ... on ContentfulAsset {
+                contentful_id
+                gatsbyImage(
+                  layout: FULL_WIDTH
+                  placeholder: BLURRED
+                  width: 1280
+                )
+                resize(height: 630, width: 1200) {
+                  src
+                }
+              }
+              # ... on ContentfulBlogPost {
+              #   title
+              #   slug
+              # }
             }
           }
         }
