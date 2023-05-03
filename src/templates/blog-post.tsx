@@ -12,6 +12,7 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
+import { documentToReactComponents } from '@contentful/rich-text-react-renderer'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -28,14 +29,14 @@ class BlogPostTemplate extends React.Component<
     console.log(this.props.data)
 
     const options = {
-      renderNode: {
-        [BLOCKS.EMBEDDED_ASSET]: (node) => {
-          const { gatsbyImage, description } = node.data.target
-          return (
-            <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
-          )
-        },
-      },
+      // renderNode: {
+      //   [BLOCKS.EMBEDDED_ASSET]: (node) => {
+      //     const { gatsbyImage, description } = node.data.target
+      //     return (
+      //       <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
+      //     )
+      //   },
+      // }
     }
 
     return (
@@ -102,6 +103,15 @@ class BlogPostTemplate extends React.Component<
                                 switch (property.__typename) {
                                   case 'RepeaterPropertyText':
                                     return <p key={j}>{property.text}</p>
+                                  case 'RepeaterPropertyRichText':
+                                    return (
+                                      <p key={j}>
+                                        {renderRichText({
+                                          raw: property.richText,
+                                          references: [],
+                                        })}
+                                      </p>
+                                    )
                                   case 'RepeaterPropertyMedia':
                                     return (
                                       <GatsbyImage
@@ -124,6 +134,7 @@ class BlogPostTemplate extends React.Component<
                                 switch (property.__typename) {
                                   case 'RepeaterPropertyText':
                                     return <p key={j}>{property.text}</p>
+
                                   case 'RepeaterPropertyMedia':
                                     return (
                                       <GatsbyImage
@@ -180,6 +191,9 @@ export const pageQuery = graphql`
     ... on RepeaterPropertyText {
       text
     }
+    ... on RepeaterPropertyRichText {
+      richText
+    }
     ... on RepeaterPropertyMedia {
       media {
         gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
@@ -235,6 +249,9 @@ export const pageQuery = graphql`
           title
           body {
             raw
+            references {
+              __typename
+            }
           }
         }
         ... on ContentfulImageBlock {

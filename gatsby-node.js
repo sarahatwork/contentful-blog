@@ -66,7 +66,14 @@ exports.createSchemaCustomization = ({ actions }) => {
       media: ContentfulAsset!
     }
 
-    union RepeaterProperty = RepeaterPropertyText | RepeaterPropertyMedia
+    type RepeaterPropertyRichText implements Node {
+      richText: String!
+    }
+
+    union RepeaterProperty = 
+      | RepeaterPropertyText 
+      | RepeaterPropertyMedia
+      | RepeaterPropertyRichText
   `)
 }
 
@@ -94,7 +101,16 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
           for (const p of repeaterProperties) {
             const { type, data } = p
             const value = JSON.parse(data)
-            switch (p.type) {
+            switch (type) {
+              case 'richText':
+                entryProperties.push({
+                  __typename: 'RepeaterPropertyRichText',
+                  richText: data,
+                  internal: {
+                    type: 'RepeaterPropertyRichText',
+                  },
+                })
+                break
               case 'text':
                 entryProperties.push({
                   __typename: 'RepeaterPropertyText',
