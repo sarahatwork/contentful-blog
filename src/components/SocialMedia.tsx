@@ -9,7 +9,7 @@ import useRepeater from './useRepeater'
 
 interface IProps {
   items: ReadonlyArray<{
-    entryProperties: ReadonlyArray<Queries.RepeaterFragment>
+    blockFields: ReadonlyArray<Queries.RepeaterFragment>
   } | null>
 }
 

@@ -74,32 +74,32 @@ exports.createSchemaCustomization = ({ actions }) => {
   const { createTypes } = actions
 
   createTypes(`
-    type RepeaterPropertyText implements Node {
+    type RepeaterFieldText implements Node {
       name: String!
       text: String
     }
 
-    type RepeaterPropertyMedia implements Node {
+    type RepeaterFieldMedia implements Node {
       name: String!
       media: ContentfulAsset
     }
 
-    type RepeaterPropertyRichText implements Node {
+    type RepeaterFieldRichText implements Node {
       name: String!
       richTextRaw: String
       richTextReferences: [ContentfulAsset!]
     }
 
-    type RepeaterPropertyBoolean implements Node {
+    type RepeaterFieldBoolean implements Node {
       name: String!
       boolean: Boolean
     }
 
-    union RepeaterProperty = 
-      | RepeaterPropertyText 
-      | RepeaterPropertyMedia
-      | RepeaterPropertyRichText
-      | RepeaterPropertyBoolean
+    union RepeaterField = 
+      | RepeaterFieldText 
+      | RepeaterFieldMedia
+      | RepeaterFieldRichText
+      | RepeaterFieldBoolean
   `)
 }
 
@@ -112,7 +112,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   )
   contentfulEntryTypes.forEach((graphqlType) => {
     Object.values(graphqlType.getFields()).forEach((fieldData) => {
-      if (fieldData.type.ofType?.getFields?.()?.repeaterProperties) {
+      if (fieldData.type.ofType?.getFields?.()?.repeaterFields) {
         repeaterFields.push(fieldData.type.ofType.name)
       }
     })
@@ -122,9 +122,9 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
 
   const resolvers = repeaterFields.reduce((acc, fieldName) => {
     acc[fieldName] = {
-      entryProperties: {
-        type: '[RepeaterProperty!]!',
-        async resolve({ repeaterProperties }, _args, { nodeModel }) {
+      blockFields: {
+        type: '[RepeaterField!]!',
+        async resolve({ repeaterFields }, _args, { nodeModel }) {
           const getContentfulAsset = async (id) => {
             if (!contentfulAssets) {
               contentfulAssets = Array.from(
@@ -138,11 +138,11 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
             return contentfulAssets.find((a) => a.contentful_id === id)
           }
 
-          const entryProperties = []
+          const blockFields = []
 
-          const addRepeaterProperty = (property, data) => {
-            const type = `RepeaterProperty${capitalize(property.type)}`
-            entryProperties.push({
+          const addRepeaterField = (property, data) => {
+            const type = `RepeaterField${capitalize(property.type)}`
+            blockFields.push({
               __typename: type,
               internal: {
                 type,
@@ -152,7 +152,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
             })
           }
 
-          for (const p of repeaterProperties) {
+          for (const p of repeaterFields) {
             const { type, data } = p
             const value = JSON.parse(data)
             switch (type) {
@@ -168,30 +168,30 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                   }
                 }
 
-                addRepeaterProperty(p, {
+                addRepeaterField(p, {
                   richTextRaw: data,
                   richTextReferences,
                 })
                 break
               case 'text':
-                addRepeaterProperty(p, {
+                addRepeaterField(p, {
                   text: value,
                 })
                 break
               case 'media':
                 const media = await getContentfulAsset(value.sys.id)
-                addRepeaterProperty(p, {
+                addRepeaterField(p, {
                   media,
                 })
                 break
               case 'boolean':
-                addRepeaterProperty(p, {
+                addRepeaterField(p, {
                   boolean: value,
                 })
                 break
             }
           }
-          return entryProperties
+          return blockFields
         },
       },
     }

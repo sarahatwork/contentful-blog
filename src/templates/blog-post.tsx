@@ -96,13 +96,13 @@ class BlogPostTemplate extends React.Component<
 export default BlogPostTemplate
 
 export const pageQuery = graphql`
-  fragment Repeater on RepeaterProperty {
+  fragment Repeater on RepeaterField {
     __typename
-    ... on RepeaterPropertyText {
+    ... on RepeaterFieldText {
       name
       text
     }
-    ... on RepeaterPropertyRichText {
+    ... on RepeaterFieldRichText {
       name
       richTextRaw
       richTextReferences {
@@ -116,7 +116,7 @@ export const pageQuery = graphql`
         }
       }
     }
-    ... on RepeaterPropertyMedia {
+    ... on RepeaterFieldMedia {
       name
       media {
         gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
@@ -125,7 +125,7 @@ export const pageQuery = graphql`
         }
       }
     }
-    ... on RepeaterPropertyBoolean {
+    ... on RepeaterFieldBoolean {
       name
       boolean
     }
@@ -134,7 +134,7 @@ export const pageQuery = graphql`
     title
 
     items {
-      entryProperties {
+      blockFields {
         ...Repeater
       }
     }

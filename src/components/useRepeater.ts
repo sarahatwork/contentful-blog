@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 interface IProps<T> {
   items: ReadonlyArray<{
-    entryProperties: ReadonlyArray<Queries.RepeaterFragment>
+    blockFields: ReadonlyArray<Queries.RepeaterFragment>
   } | null> | null
   schema: z.ZodType<T>
 }
@@ -13,23 +13,23 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
   const object = items.flatMap((e) =>
     e
       ? [
-          e.entryProperties.reduce((acc, property) => {
+          e.blockFields.reduce((acc, property) => {
             if (!property) return acc
 
             switch (property.__typename) {
-              case 'RepeaterPropertyText':
-                acc[property.name] = property.text
+              case 'RepeaterFieldText':
+                acc[property.name] = property.text ?? undefined
                 break
-              case 'RepeaterPropertyRichText':
+              case 'RepeaterFieldRichText':
                 acc[property.name] = {
                   raw: property.richTextRaw,
                   references: property.richTextReferences,
                 }
                 break
-              case 'RepeaterPropertyMedia':
+              case 'RepeaterFieldMedia':
                 acc[property.name] = property.media
                 break
-              case 'RepeaterPropertyBoolean':
+              case 'RepeaterFieldBoolean':
                 acc[property.name] = !!property.boolean
                 break
             }

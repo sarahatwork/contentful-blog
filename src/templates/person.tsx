@@ -32,7 +32,7 @@ export const pageQuery = graphql`
       slug
       name
       socialMedia {
-        entryProperties {
+        blockFields {
           ...Repeater
         }
       }
