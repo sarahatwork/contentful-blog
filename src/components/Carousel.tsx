@@ -3,6 +3,7 @@ import { GatsbyImage, getImage } from 'gatsby-plugin-image'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { BLOCKS } from '@contentful/rich-text-types'
 import { z } from 'zod'
+import useRepeater from './useRepeater'
 
 type TProps = Queries.CarouselFragment
 
@@ -15,58 +16,28 @@ const options = {
   },
 }
 
+const SCHEMA = z.array(
+  z.object({
+    photoCredit: z.string().optional(),
+    caption: z.object({
+      raw: z.string(),
+      references: z.array(
+        z.object({
+          __typename: z.string(),
+          contentful_id: z.string(),
+        })
+      ),
+    }),
+    image: z.object({
+      gatsbyImage: z.any(),
+    }),
+    featured: z.boolean().optional(),
+  })
+)
+
 const Carousel: React.FC<TProps> = ({ title, items }) => {
-  if (!items) return null
-
-  const data = items.flatMap((e) =>
-    e
-      ? [
-          e.entryProperties.reduce((acc, property) => {
-            if (!property) return acc
-
-            switch (property.__typename) {
-              case 'RepeaterPropertyText':
-                acc[property.name] = property.text
-                break
-              case 'RepeaterPropertyRichText':
-                acc[property.name] = {
-                  raw: property.richTextRaw,
-                  references: property.richTextReferences,
-                }
-                break
-              case 'RepeaterPropertyMedia':
-                acc[property.name] = property.media
-                break
-              case 'RepeaterPropertyBoolean':
-                acc[property.name] = !!property.boolean
-                break
-            }
-            return acc
-          }, {}),
-        ]
-      : []
-  )
-
-  const CarouselSchema = z.array(
-    z.object({
-      photoCredit: z.string().optional(),
-      caption: z.object({
-        raw: z.string(),
-        references: z.array(
-          z.object({
-            __typename: z.string(),
-            contentful_id: z.string(),
-          })
-        ),
-      }),
-      image: z.object({
-        gatsbyImage: z.any(),
-      }),
-      featured: z.boolean().optional(),
-    })
-  )
-
-  const carouselItems = CarouselSchema.parse(data)
+  const carouselItems = useRepeater({ items, schema: SCHEMA })
+  if (!carouselItems) return null
 
   return (
     <>

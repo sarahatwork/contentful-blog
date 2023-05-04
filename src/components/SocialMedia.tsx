@@ -5,7 +5,8 @@ import { z } from 'zod'
 import FacebookIcon from '@iconscout/react-unicons/icons/uil-facebook'
 import InstagramIcon from '@iconscout/react-unicons/icons/uil-instagram'
 import StarIcon from '@iconscout/react-unicons/icons/uil-star'
-import { Link } from 'gatsby'
+import useRepeater from './useRepeater'
+
 interface IProps {
   items: ReadonlyArray<{
     entryProperties: ReadonlyArray<Queries.RepeaterFragment>
@@ -21,46 +22,20 @@ const options = {
   },
 }
 
+const SCHEMA = z.array(
+  z.object({
+    network: z.union([
+      z.literal('Facebook'),
+      z.literal('Instagram'),
+      z.literal("Dog's Instagram"),
+    ]),
+    url: z.string(),
+  })
+)
+
 const SocialMedia: React.FC<IProps> = ({ items }) => {
-  if (!items) return null
-
-  const data = items.flatMap((e) =>
-    e
-      ? [
-          e.entryProperties.reduce((acc, property) => {
-            if (!property) return acc
-
-            switch (property.__typename) {
-              case 'RepeaterPropertyText':
-                acc[property.name] = property.text
-                break
-              case 'RepeaterPropertyRichText':
-                acc[property.name] = {
-                  raw: property.richTextRaw,
-                  references: property.richTextReferences,
-                }
-                break
-              case 'RepeaterPropertyMedia':
-                acc[property.name] = property.media
-                break
-              case 'RepeaterPropertyBoolean':
-                acc[property.name] = !!property.boolean
-                break
-            }
-            return acc
-          }, {}),
-        ]
-      : []
-  )
-
-  const SocialMediaSchema = z.array(
-    z.object({
-      network: z.string(),
-      url: z.string(),
-    })
-  )
-
-  const socialItems = SocialMediaSchema.parse(data)
+  const socialItems = useRepeater({ items, schema: SCHEMA })
+  if (!socialItems) return null
 
   return (
     <ul>
