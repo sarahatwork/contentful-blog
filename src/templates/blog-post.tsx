@@ -41,8 +41,8 @@ class BlogPostTemplate extends React.Component<
         <Hero image={post.heroImage?.gatsbyImage} title={post.title} />
         <div className={styles.container}>
           <span className={styles.meta}>
-            {post.author?.name} &middot;{' '}
-            <time dateTime={post.rawDate!}>{post.publishDate}</time>
+            <Link to={`/person/${post.author?.slug}`}>{post.author?.name}</Link>{' '}
+            &middot; <time dateTime={post.rawDate!}>{post.publishDate}</time>
           </span>
           <div className={styles.article}>
             <div className={styles.body}>
@@ -56,80 +56,10 @@ class BlogPostTemplate extends React.Component<
                         {m.body?.raw ? renderRichText(m.body, options) : null}
                       </Fragment>
                     )
-                  // case 'ContentfulImageBlock':
-                  //   return (
-                  //     <Fragment key={i}>
-                  //       <h2>{m.title}</h2>
-                  //       {m.image?.gatsbyImage && (
-                  //         <GatsbyImage
-                  //           alt={m.title!}
-                  //           image={m.image?.gatsbyImage}
-                  //         />
-                  //       )}
-                  //     </Fragment>
-                  //   )
+
                   case 'ContentfulCarousel':
                     return <Carousel {...m} key={i} />
-                  // case 'ContentfulRepeaterV2':
-                  //   return (
-                  //     <Fragment key={i}>
-                  //       <h2>{m.title}</h2>
-                  //       <h3>Field 1 - testing</h3>
-                  //       {/* @ts-ignore */}
-                  //       <RepeaterEntries entries={m.testing} />
-                  //       <h3>Field 2</h3>
-                  //       {m.testingMedia?.map((entry, i) => {
-                  //         return (
-                  //           <div key={i}>
-                  //             <h1>Entry {i + 1}</h1>
-                  //             {entry?.entryProperties.map((property, j) => {
-                  //               switch (property.__typename) {
-                  //                 case 'RepeaterPropertyText':
-                  //                   return <p key={j}>{property.text}</p>
 
-                  //                 case 'RepeaterPropertyMedia':
-                  //                   if (!property.media) return null
-                  //                   return (
-                  //                     <GatsbyImage
-                  //                       key={j}
-                  //                       alt={'Missing alt'}
-                  //                       image={property.media.gatsbyImage!}
-                  //                     />
-                  //                   )
-                  //               }
-                  //             })}
-                  //           </div>
-                  //         )
-                  //       })}
-                  //       <h3>Field 3</h3>
-                  //       {m.richText?.map((entry, i) => {
-                  //         return (
-                  //           <div key={i}>
-                  //             <h1>Entry {i + 1}</h1>
-                  //             {entry?.entryProperties.map((property, j) => {
-                  //               switch (property.__typename) {
-                  //                 case 'RepeaterPropertyRichText':
-                  //                   if (!property.richTextRaw) return null
-                  //                   return (
-                  //                     <p key={j}>
-                  //                       {renderRichText(
-                  //                         {
-                  //                           raw: property.richTextRaw,
-                  //                           // @ts-ignore
-                  //                           references:
-                  //                             property.richTextReferences,
-                  //                         },
-                  //                         options
-                  //                       )}
-                  //                     </p>
-                  //                   )
-                  //               }
-                  //             })}
-                  //           </div>
-                  //         )
-                  //       })}
-                  //     </Fragment>
-                  //   )
                   default:
                     return null
                 }
@@ -219,6 +149,7 @@ export const pageQuery = graphql`
       title
       author {
         name
+        slug
       }
       publishDate(formatString: "MMMM Do, YYYY")
       rawDate: publishDate
@@ -237,20 +168,6 @@ export const pageQuery = graphql`
           title
           body {
             raw
-            references {
-              __typename
-              ... on ContentfulAsset {
-                contentful_id
-                gatsbyImage(
-                  layout: FULL_WIDTH
-                  placeholder: BLURRED
-                  width: 1280
-                )
-                resize(height: 630, width: 1200) {
-                  src
-                }
-              }
-            }
           }
         }
       }
