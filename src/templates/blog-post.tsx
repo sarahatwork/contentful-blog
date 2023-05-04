@@ -12,6 +12,7 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
+import RepeaterEntries from '../components/RepeaterEntries'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -30,7 +31,6 @@ class BlogPostTemplate extends React.Component<
     const options = {
       renderNode: {
         [BLOCKS.EMBEDDED_ASSET]: (node) => {
-          console.log('=====node', node)
           const { gatsbyImage, description } = node.data.target
           return (
             <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
@@ -80,56 +80,13 @@ class BlogPostTemplate extends React.Component<
                         )}
                       </Fragment>
                     )
-                  case 'ContentfulRepeater':
-                    return (
-                      <Fragment key={i}>
-                        <h2>{m.title}</h2>
-                        {m.entries?.map((e, i) => (
-                          <div key={i}>
-                            <strong>{e?.key}:</strong> {e?.value}
-                          </div>
-                        ))}
-                      </Fragment>
-                    )
                   case 'ContentfulRepeaterV2':
                     return (
                       <Fragment key={i}>
                         <h2>{m.title}</h2>
-                        {m.testing?.map((entry, i) => {
-                          return (
-                            <div key={i}>
-                              <h1>Entry {i + 1}</h1>
-                              {entry?.entryProperties.map((property, j) => {
-                                switch (property.__typename) {
-                                  case 'RepeaterPropertyText':
-                                    return <p key={j}>{property.text}</p>
-                                  case 'RepeaterPropertyRichText':
-                                    return (
-                                      <p key={j}>
-                                        {renderRichText(
-                                          {
-                                            raw: property.richTextRaw,
-                                            // @ts-ignore
-                                            references:
-                                              property.richTextReferences,
-                                          },
-                                          options
-                                        )}
-                                      </p>
-                                    )
-                                  case 'RepeaterPropertyMedia':
-                                    return (
-                                      <GatsbyImage
-                                        key={j}
-                                        alt={'Missing alt'}
-                                        image={property.media.gatsbyImage!}
-                                      />
-                                    )
-                                }
-                              })}
-                            </div>
-                          )
-                        })}
+                        <h3>Field 1 - testing</h3>
+                        {/* @ts-ignore */}
+                        <RepeaterEntries entries={m.testing} />
                         <h3>Field 2</h3>
                         {m.testingMedia?.map((entry, i) => {
                           return (
@@ -141,6 +98,7 @@ class BlogPostTemplate extends React.Component<
                                     return <p key={j}>{property.text}</p>
 
                                   case 'RepeaterPropertyMedia':
+                                    if (!property.media) return null
                                     return (
                                       <GatsbyImage
                                         key={j}
@@ -161,6 +119,7 @@ class BlogPostTemplate extends React.Component<
                               {entry?.entryProperties.map((property, j) => {
                                 switch (property.__typename) {
                                   case 'RepeaterPropertyRichText':
+                                    if (!property.richTextRaw) return null
                                     return (
                                       <p key={j}>
                                         {renderRichText(
@@ -220,9 +179,11 @@ export const pageQuery = graphql`
   fragment Repeater on RepeaterProperty {
     __typename
     ... on RepeaterPropertyText {
+      name
       text
     }
     ... on RepeaterPropertyRichText {
+      name
       richTextRaw
       richTextReferences {
         __typename
@@ -233,19 +194,20 @@ export const pageQuery = graphql`
             src
           }
         }
-        # ... on ContentfulBlogPost {
-        #   title
-        #   slug
-        # }
       }
     }
     ... on RepeaterPropertyMedia {
+      name
       media {
         gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
         resize(height: 630, width: 1200) {
           src
         }
       }
+    }
+    ... on RepeaterPropertyBoolean {
+      name
+      boolean
     }
   }
   query BlogPostBySlug(
@@ -269,13 +231,6 @@ export const pageQuery = graphql`
       }
       modules {
         __typename
-        ... on ContentfulRepeater {
-          title
-          entries {
-            key
-            value
-          }
-        }
         ... on ContentfulRepeaterV2 {
           title
 
@@ -312,10 +267,6 @@ export const pageQuery = graphql`
                   src
                 }
               }
-              # ... on ContentfulBlogPost {
-              #   title
-              #   slug
-              # }
             }
           }
         }

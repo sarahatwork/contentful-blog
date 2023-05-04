@@ -59,24 +59,35 @@ exports.createSchemaCustomization = ({ actions }) => {
 
   createTypes(`
     type RepeaterPropertyText implements Node {
-      text: String!
+      name: String!
+      text: String
     }
 
     type RepeaterPropertyMedia implements Node {
-      media: ContentfulAsset!
+      name: String!
+      media: ContentfulAsset
     }
 
     type RepeaterPropertyRichText implements Node {
-      richTextRaw: String!
-      richTextReferences: [ContentfulAsset!]!
+      name: String!
+      richTextRaw: String
+      richTextReferences: [ContentfulAsset!]
+    }
+
+    type RepeaterPropertyBoolean implements Node {
+      name: String!
+      boolean: Boolean
     }
 
     union RepeaterProperty = 
       | RepeaterPropertyText 
       | RepeaterPropertyMedia
       | RepeaterPropertyRichText
+      | RepeaterPropertyBoolean
   `)
 }
+
+const capitalize = (input) => input[0].toUpperCase() + input.slice(1)
 
 exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   const typeMap = intermediateSchema.getTypeMap()
@@ -112,6 +123,19 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
           }
 
           const entryProperties = []
+
+          const addRepeaterProperty = (property, data) => {
+            const type = `RepeaterProperty${capitalize(property.type)}`
+            entryProperties.push({
+              __typename: type,
+              internal: {
+                type,
+              },
+              name: property.name,
+              ...data,
+            })
+          }
+
           for (const p of repeaterProperties) {
             const { type, data } = p
             const value = JSON.parse(data)
@@ -128,32 +152,25 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                   }
                 }
 
-                entryProperties.push({
-                  __typename: 'RepeaterPropertyRichText',
+                addRepeaterProperty(p, {
                   richTextRaw: data,
                   richTextReferences,
-                  internal: {
-                    type: 'RepeaterPropertyRichText',
-                  },
                 })
                 break
               case 'text':
-                entryProperties.push({
-                  __typename: 'RepeaterPropertyText',
+                addRepeaterProperty(p, {
                   text: value,
-                  internal: {
-                    type: 'RepeaterPropertyText',
-                  },
                 })
                 break
               case 'media':
                 const media = await getContentfulAsset(value.sys.id)
-                entryProperties.push({
-                  __typename: 'RepeaterPropertyMedia',
+                addRepeaterProperty(p, {
                   media,
-                  internal: {
-                    type: 'RepeaterPropertyMedia',
-                  },
+                })
+                break
+              case 'boolean':
+                addRepeaterProperty(p, {
+                  boolean: value,
                 })
                 break
             }
