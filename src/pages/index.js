@@ -42,9 +42,6 @@ export const pageQuery = graphql`
             height: 212
           )
         }
-        description {
-          raw
-        }
       }
     }
     allContentfulPerson(

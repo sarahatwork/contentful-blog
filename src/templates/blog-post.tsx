@@ -2,7 +2,6 @@ import React, { Fragment } from 'react'
 import { Link, PageProps, graphql } from 'gatsby'
 import get from 'lodash/get'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
-import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer'
 import { BLOCKS } from '@contentful/rich-text-types'
 import { GatsbyImage, getImage } from 'gatsby-plugin-image'
 
@@ -12,7 +11,7 @@ import Hero from '../components/hero'
 import Tags from '../components/tags'
 // @ts-ignore
 import * as styles from './blog-post.module.css'
-import RepeaterEntries from '../components/RepeaterEntries'
+import Carousel from '../components/Carousel'
 
 class BlogPostTemplate extends React.Component<
   PageProps<Queries.BlogPostBySlugQuery>
@@ -23,9 +22,6 @@ class BlogPostTemplate extends React.Component<
 
     const previous = get(this.props, 'data.previous')
     const next = get(this.props, 'data.next')
-    const plainTextDescription = post?.description?.raw
-      ? documentToPlainTextString(JSON.parse(post.description.raw))
-      : undefined
     console.log(this.props.data)
 
     const options = {
@@ -41,16 +37,8 @@ class BlogPostTemplate extends React.Component<
 
     return (
       <Layout location={this.props.location}>
-        <Seo
-          title={post.title}
-          description={plainTextDescription}
-          image={`http:${post.heroImage?.resize?.src}`}
-        />
-        <Hero
-          image={post.heroImage?.gatsbyImage}
-          title={post.title}
-          content={post.description}
-        />
+        <Seo title={post.title} image={`http:${post.heroImage?.resize?.src}`} />
+        <Hero image={post.heroImage?.gatsbyImage} title={post.title} />
         <div className={styles.container}>
           <span className={styles.meta}>
             {post.author?.name} &middot;{' '}
@@ -68,78 +56,80 @@ class BlogPostTemplate extends React.Component<
                         {m.body?.raw ? renderRichText(m.body, options) : null}
                       </Fragment>
                     )
-                  case 'ContentfulImageBlock':
-                    return (
-                      <Fragment key={i}>
-                        <h2>{m.title}</h2>
-                        {m.image?.gatsbyImage && (
-                          <GatsbyImage
-                            alt={m.title!}
-                            image={m.image?.gatsbyImage}
-                          />
-                        )}
-                      </Fragment>
-                    )
-                  case 'ContentfulRepeaterV2':
-                    return (
-                      <Fragment key={i}>
-                        <h2>{m.title}</h2>
-                        <h3>Field 1 - testing</h3>
-                        {/* @ts-ignore */}
-                        <RepeaterEntries entries={m.testing} />
-                        <h3>Field 2</h3>
-                        {m.testingMedia?.map((entry, i) => {
-                          return (
-                            <div key={i}>
-                              <h1>Entry {i + 1}</h1>
-                              {entry?.entryProperties.map((property, j) => {
-                                switch (property.__typename) {
-                                  case 'RepeaterPropertyText':
-                                    return <p key={j}>{property.text}</p>
+                  // case 'ContentfulImageBlock':
+                  //   return (
+                  //     <Fragment key={i}>
+                  //       <h2>{m.title}</h2>
+                  //       {m.image?.gatsbyImage && (
+                  //         <GatsbyImage
+                  //           alt={m.title!}
+                  //           image={m.image?.gatsbyImage}
+                  //         />
+                  //       )}
+                  //     </Fragment>
+                  //   )
+                  case 'ContentfulCarousel':
+                    return <Carousel {...m} key={i} />
+                  // case 'ContentfulRepeaterV2':
+                  //   return (
+                  //     <Fragment key={i}>
+                  //       <h2>{m.title}</h2>
+                  //       <h3>Field 1 - testing</h3>
+                  //       {/* @ts-ignore */}
+                  //       <RepeaterEntries entries={m.testing} />
+                  //       <h3>Field 2</h3>
+                  //       {m.testingMedia?.map((entry, i) => {
+                  //         return (
+                  //           <div key={i}>
+                  //             <h1>Entry {i + 1}</h1>
+                  //             {entry?.entryProperties.map((property, j) => {
+                  //               switch (property.__typename) {
+                  //                 case 'RepeaterPropertyText':
+                  //                   return <p key={j}>{property.text}</p>
 
-                                  case 'RepeaterPropertyMedia':
-                                    if (!property.media) return null
-                                    return (
-                                      <GatsbyImage
-                                        key={j}
-                                        alt={'Missing alt'}
-                                        image={property.media.gatsbyImage!}
-                                      />
-                                    )
-                                }
-                              })}
-                            </div>
-                          )
-                        })}
-                        <h3>Field 3</h3>
-                        {m.richText?.map((entry, i) => {
-                          return (
-                            <div key={i}>
-                              <h1>Entry {i + 1}</h1>
-                              {entry?.entryProperties.map((property, j) => {
-                                switch (property.__typename) {
-                                  case 'RepeaterPropertyRichText':
-                                    if (!property.richTextRaw) return null
-                                    return (
-                                      <p key={j}>
-                                        {renderRichText(
-                                          {
-                                            raw: property.richTextRaw,
-                                            // @ts-ignore
-                                            references:
-                                              property.richTextReferences,
-                                          },
-                                          options
-                                        )}
-                                      </p>
-                                    )
-                                }
-                              })}
-                            </div>
-                          )
-                        })}
-                      </Fragment>
-                    )
+                  //                 case 'RepeaterPropertyMedia':
+                  //                   if (!property.media) return null
+                  //                   return (
+                  //                     <GatsbyImage
+                  //                       key={j}
+                  //                       alt={'Missing alt'}
+                  //                       image={property.media.gatsbyImage!}
+                  //                     />
+                  //                   )
+                  //               }
+                  //             })}
+                  //           </div>
+                  //         )
+                  //       })}
+                  //       <h3>Field 3</h3>
+                  //       {m.richText?.map((entry, i) => {
+                  //         return (
+                  //           <div key={i}>
+                  //             <h1>Entry {i + 1}</h1>
+                  //             {entry?.entryProperties.map((property, j) => {
+                  //               switch (property.__typename) {
+                  //                 case 'RepeaterPropertyRichText':
+                  //                   if (!property.richTextRaw) return null
+                  //                   return (
+                  //                     <p key={j}>
+                  //                       {renderRichText(
+                  //                         {
+                  //                           raw: property.richTextRaw,
+                  //                           // @ts-ignore
+                  //                           references:
+                  //                             property.richTextReferences,
+                  //                         },
+                  //                         options
+                  //                       )}
+                  //                     </p>
+                  //                   )
+                  //               }
+                  //             })}
+                  //           </div>
+                  //         )
+                  //       })}
+                  //     </Fragment>
+                  //   )
                   default:
                     return null
                 }
@@ -210,6 +200,15 @@ export const pageQuery = graphql`
       boolean
     }
   }
+  fragment Carousel on ContentfulCarousel {
+    title
+
+    items {
+      entryProperties {
+        ...Repeater
+      }
+    }
+  }
   query BlogPostBySlug(
     $slug: String!
     $previousPostSlug: String
@@ -231,24 +230,8 @@ export const pageQuery = graphql`
       }
       modules {
         __typename
-        ... on ContentfulRepeaterV2 {
-          title
-
-          testing {
-            entryProperties {
-              ...Repeater
-            }
-          }
-          testingMedia {
-            entryProperties {
-              ...Repeater
-            }
-          }
-          richText {
-            entryProperties {
-              ...Repeater
-            }
-          }
+        ... on ContentfulCarousel {
+          ...Carousel
         }
         ... on ContentfulTextBlock {
           title
@@ -270,20 +253,8 @@ export const pageQuery = graphql`
             }
           }
         }
-        ... on ContentfulImageBlock {
-          title
-          image {
-            gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
-            resize(height: 630, width: 1200) {
-              src
-            }
-          }
-        }
       }
       tags
-      description {
-        raw
-      }
     }
     previous: contentfulBlogPost(slug: { eq: $previousPostSlug }) {
       slug
