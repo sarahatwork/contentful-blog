@@ -29,6 +29,16 @@ const SCHEMA = z.array(
         slug: z.string(),
       })
       .optional(),
+    tags: z
+      .array(
+        z.object({
+          __typename: z.literal('ContentfulPerson'),
+          contentful_id: z.string(),
+          name: z.string(),
+          slug: z.string(),
+        })
+      )
+      .optional(),
     caption: z.object({
       raw: z.string(),
       references: z.array(
@@ -85,6 +95,18 @@ const Carousel: React.FC<TProps> = ({ title, items }) => {
                   {entry.photoCredit.name}
                 </Link>
               </div>
+            )}
+            {entry.tags && entry.tags.length > 0 && (
+              <>
+                <div>Tagged in photo:</div>
+                <ul>
+                  {entry.tags.map((tag) => (
+                    <li key={tag.slug}>
+                      <Link to={`/person/${tag.slug}`}>{tag.name}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </div>
         )

@@ -146,6 +146,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                 }
                 break
               case 'mediaMultiple':
+                if (!data) break
                 for (const ref of data) {
                   if (ref?.sys?.id) {
                     const asset = await getContentfulAsset(ref.sys.id)
@@ -157,6 +158,15 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                 if (data?.sys?.id) {
                   const entry = await getContentfulEntry(data.sys.id)
                   references.push(entry)
+                }
+                break
+              case 'referenceMultiple':
+                if (!data) break
+                for (const ref of data) {
+                  if (ref?.sys?.id) {
+                    const entry = await getContentfulEntry(ref.sys.id)
+                    references.push(entry)
+                  }
                 }
                 break
             }

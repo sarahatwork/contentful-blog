@@ -23,6 +23,7 @@ const FIELD_SCHEMA = z.object({
     z.literal('richText'),
     z.literal('boolean'),
     z.literal('referenceSingle'),
+    z.literal('referenceMultiple'),
   ]),
 })
 
@@ -57,6 +58,7 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
                   if (image) acc[parsedField.name] = image
                   break
                 case 'mediaMultiple':
+                  if (!parsedField.data) break
                   acc[parsedField.name] = parsedField.data.reduce(
                     (mediaAcc, assetLink) => {
                       const image = item.references?.find(
@@ -79,6 +81,23 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
                       (r) => r.contentful_id === parsedField.data.sys.id
                     )
                   if (reference) acc[parsedField.name] = reference
+                  break
+                case 'referenceMultiple':
+                  if (!parsedField.data) break
+                  acc[parsedField.name] = parsedField.data.reduce(
+                    (entryAcc, entryLink) => {
+                      const entry = item.references?.find(
+                        (r) => r.contentful_id === entryLink.sys.id
+                      )
+
+                      if (entry) {
+                        entryAcc.push(entry)
+                      }
+
+                      return entryAcc
+                    },
+                    []
+                  )
                   break
                 default:
                   acc[parsedField.name] = parsedField.data ?? undefined
