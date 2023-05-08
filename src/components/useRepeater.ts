@@ -6,8 +6,8 @@ interface IProps<T> {
     raw: string
     references?: ReadonlyArray<{
       __typename: string | null
-      contentful_id: string | null
-      gatsbyImage: IGatsbyImageData | null
+      contentful_id?: string | null
+      gatsbyImage?: IGatsbyImageData | null
     }>
   } | null> | null
   schema: z.ZodType<T>
@@ -22,6 +22,7 @@ const FIELD_SCHEMA = z.object({
     z.literal('mediaMultiple'),
     z.literal('richText'),
     z.literal('boolean'),
+    z.literal('referenceSingle'),
   ]),
 })
 
@@ -39,7 +40,9 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
                 case 'richText':
                   acc[parsedField.name] = {
                     raw: JSON.stringify(parsedField.data),
-                    references: item.references,
+                    references: item.references?.filter(
+                      (ref) => ref.__typename === 'ContentfulAsset'
+                    ),
                   }
                   break
                 case 'boolean':
@@ -68,6 +71,14 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
                     },
                     []
                   )
+                  break
+                case 'referenceSingle':
+                  const reference =
+                    parsedField.data?.sys?.id &&
+                    item.references?.find(
+                      (r) => r.contentful_id === parsedField.data.sys.id
+                    )
+                  if (reference) acc[parsedField.name] = reference
                   break
                 default:
                   acc[parsedField.name] = parsedField.data ?? undefined

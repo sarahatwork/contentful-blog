@@ -84,6 +84,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   })
 
   let contentfulAssets
+  let contentfulEntries
 
   const resolvers = repeaterBlocks.reduce((acc, fieldName) => {
     acc[fieldName] = {
@@ -94,7 +95,7 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
         },
       },
       references: {
-        type: '[ContentfulAsset!]!',
+        type: '[ContentfulReference!]!',
         async resolve({ data__REPEATER }, _args, { nodeModel }) {
           const getContentfulAsset = async (id) => {
             if (!contentfulAssets) {
@@ -108,6 +109,20 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
             }
             return contentfulAssets.find((a) => a.contentful_id === id)
           }
+
+          const getContentfulEntry = async (id) => {
+            if (!contentfulEntries) {
+              contentfulEntries = Array.from(
+                (
+                  await nodeModel.findAll({
+                    type: 'ContentfulEntry',
+                  })
+                ).entries
+              )
+            }
+            return contentfulEntries.find((a) => a.contentful_id === id)
+          }
+
           const references = []
 
           for (const field of Object.values(data__REPEATER)) {
@@ -136,6 +151,12 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                     const asset = await getContentfulAsset(ref.sys.id)
                     references.push(asset)
                   }
+                }
+                break
+              case 'referenceSingle':
+                if (data?.sys?.id) {
+                  const entry = await getContentfulEntry(data.sys.id)
+                  references.push(entry)
                 }
                 break
             }

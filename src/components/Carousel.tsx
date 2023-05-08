@@ -4,6 +4,7 @@ import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { BLOCKS } from '@contentful/rich-text-types'
 import { z } from 'zod'
 import useRepeater from './useRepeater'
+import { Link } from 'gatsby'
 
 type TProps = Queries.CarouselFragment
 
@@ -20,12 +21,19 @@ const GATSBY_IMAGE_SCHEMA = z.record(z.any())
 
 const SCHEMA = z.array(
   z.object({
-    photoCredit: z.string().optional(),
+    photoCredit: z
+      .object({
+        __typename: z.literal('ContentfulPerson'),
+        contentful_id: z.string(),
+        name: z.string(),
+        slug: z.string(),
+      })
+      .optional(),
     caption: z.object({
       raw: z.string(),
       references: z.array(
         z.object({
-          __typename: z.string(),
+          __typename: z.literal('ContentfulAsset'),
           contentful_id: z.string(),
           gatsbyImage: GATSBY_IMAGE_SCHEMA,
         })
@@ -69,8 +77,15 @@ const Carousel: React.FC<TProps> = ({ title, items }) => {
                 ))}
               </div>
             )}
-            <p>{renderRichText(entry.caption, options)}</p>
-            {entry.photoCredit && <p>Photo courtesy of: {entry.photoCredit}</p>}
+            {renderRichText(entry.caption, options)}
+            {entry.photoCredit && (
+              <div>
+                Photo courtesy of:{' '}
+                <Link to={`/person/${entry.photoCredit.slug}`}>
+                  {entry.photoCredit.name}
+                </Link>
+              </div>
+            )}
           </div>
         )
       })}

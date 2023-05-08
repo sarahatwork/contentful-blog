@@ -107,6 +107,11 @@ export const pageQuery = graphql`
           contentful_id
           gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
         }
+        ... on ContentfulPerson {
+          contentful_id
+          name
+          slug
+        }
       }
     }
   }
