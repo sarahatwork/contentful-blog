@@ -37,8 +37,6 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
 
               switch (parsedField.type) {
                 case 'richText':
-                  console.log('=====', field)
-                  console.log('=====', item.references)
                   acc[parsedField.name] = {
                     raw: parsedField.data,
                     references: item.references,

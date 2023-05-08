@@ -10,12 +10,13 @@ type TProps = Queries.CarouselFragment
 const options = {
   renderNode: {
     [BLOCKS.EMBEDDED_ASSET]: (node) => {
-      console.log('===node', node)
       const { gatsbyImage, description } = node.data.target
       return <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
     },
   },
 }
+
+const GATSBY_IMAGE_SCHEMA = z.record(z.any())
 
 const SCHEMA = z.array(
   z.object({
@@ -26,11 +27,12 @@ const SCHEMA = z.array(
         z.object({
           __typename: z.string(),
           contentful_id: z.string(),
+          gatsbyImage: GATSBY_IMAGE_SCHEMA,
         })
       ),
     }),
-    image: z.record(z.any()),
-    altImage: z.record(z.any()).optional(),
+    image: GATSBY_IMAGE_SCHEMA,
+    altImage: GATSBY_IMAGE_SCHEMA.optional(),
     featured: z.boolean().optional(),
   })
 )
