@@ -8,9 +8,7 @@ import StarIcon from '@iconscout/react-unicons/icons/uil-star'
 import useRepeater from './useRepeater'
 
 interface IProps {
-  items: ReadonlyArray<{
-    blockFields: ReadonlyArray<Queries.RepeaterFragment>
-  } | null>
+  items: Queries.SocialMediaFragment['socialMedia']
 }
 
 const options = {

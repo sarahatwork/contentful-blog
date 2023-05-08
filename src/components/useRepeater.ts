@@ -4,7 +4,7 @@ import { z } from 'zod'
 interface IProps<T> {
   items: ReadonlyArray<{
     raw: string
-    references: ReadonlyArray<{
+    references?: ReadonlyArray<{
       __typename: string | null
       contentful_id: string | null
       gatsbyImage: IGatsbyImageData | null
@@ -48,7 +48,7 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
                 case 'media':
                   const image =
                     parsedFieldValue?.sys?.id &&
-                    item.references.find(
+                    item.references?.find(
                       (r) => r.contentful_id === parsedFieldValue.sys.id
                     )?.gatsbyImage
                   if (image) acc[parsedField.name] = image

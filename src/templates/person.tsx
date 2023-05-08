@@ -3,7 +3,7 @@ import React from 'react'
 import Layout from '../components/layout'
 // @ts-ignore
 import * as styles from './person.module.css'
-// import SocialMedia from '../components/SocialMedia'
+import SocialMedia from '../components/SocialMedia'
 
 class PersonTemplate extends React.Component<
   PageProps<Queries.PersonBySlugQuery>
@@ -16,7 +16,7 @@ class PersonTemplate extends React.Component<
         <div className={styles.container}>
           <div className={styles.article}>
             <h1>{person.name}</h1>
-            {/* {person.socialMedia && <SocialMedia items={person.socialMedia} />} */}
+            {person.socialMedia && <SocialMedia items={person.socialMedia} />}
           </div>
         </div>
       </Layout>
@@ -27,10 +27,16 @@ class PersonTemplate extends React.Component<
 export default PersonTemplate
 
 export const pageQuery = graphql`
+  fragment SocialMedia on ContentfulPerson {
+    socialMedia {
+      raw
+    }
+  }
   query PersonBySlug($slug: String!) {
     contentfulPerson(slug: { eq: $slug }) {
       slug
       name
+      ...SocialMedia
     }
   }
 `
