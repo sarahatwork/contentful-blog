@@ -68,42 +68,42 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
   }
 }
 
-const repeaterFields = []
+// exports.createSchemaCustomization = ({ actions }) => {
+//   const { createTypes } = actions
 
-exports.createSchemaCustomization = ({ actions }) => {
-  const { createTypes } = actions
+//   createTypes(`
+//     type RepeaterFieldText implements Node {
+//       name: String!
+//       text: String
+//     }
 
-  createTypes(`
-    type RepeaterFieldText implements Node {
-      name: String!
-      text: String
-    }
+//     type RepeaterFieldMedia implements Node {
+//       name: String!
+//       media: ContentfulAsset
+//     }
 
-    type RepeaterFieldMedia implements Node {
-      name: String!
-      media: ContentfulAsset
-    }
+//     type RepeaterData implements Node {
+//       name: String!
+//       richTextRaw: String
+//       richTextReferences: [ContentfulAsset!]
+//     }
 
-    type RepeaterFieldRichText implements Node {
-      name: String!
-      richTextRaw: String
-      richTextReferences: [ContentfulAsset!]
-    }
+//     type RepeaterFieldBoolean implements Node {
+//       name: String!
+//       boolean: Boolean
+//     }
 
-    type RepeaterFieldBoolean implements Node {
-      name: String!
-      boolean: Boolean
-    }
-
-    union RepeaterField = 
-      | RepeaterFieldText 
-      | RepeaterFieldMedia
-      | RepeaterFieldRichText
-      | RepeaterFieldBoolean
-  `)
-}
+//     union RepeaterField =
+//       | RepeaterFieldText
+//       | RepeaterFieldMedia
+//       | RepeaterFieldRichText
+//       | RepeaterFieldBoolean
+//   `)
+// }
 
 const capitalize = (input) => input[0].toUpperCase() + input.slice(1)
+
+const repeaterBlocks = []
 
 exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   const typeMap = intermediateSchema.getTypeMap()
@@ -112,19 +112,25 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
   )
   contentfulEntryTypes.forEach((graphqlType) => {
     Object.values(graphqlType.getFields()).forEach((fieldData) => {
-      if (fieldData.type.ofType?.getFields?.()?.repeaterFields) {
-        repeaterFields.push(fieldData.type.ofType.name)
+      if (fieldData.type.ofType?.getFields?.()?.data__REPEATER) {
+        repeaterBlocks.push(fieldData.type.ofType.name)
       }
     })
   })
 
   let contentfulAssets
 
-  const resolvers = repeaterFields.reduce((acc, fieldName) => {
+  const resolvers = repeaterBlocks.reduce((acc, fieldName) => {
     acc[fieldName] = {
-      blockFields: {
-        type: '[RepeaterField!]!',
-        async resolve({ repeaterFields }, _args, { nodeModel }) {
+      raw: {
+        type: 'String!',
+        async resolve({ data__REPEATER }) {
+          return JSON.stringify(data__REPEATER)
+        },
+      },
+      references: {
+        type: '[ContentfulAsset!]!',
+        async resolve({ data__REPEATER }, _args, { nodeModel }) {
           const getContentfulAsset = async (id) => {
             if (!contentfulAssets) {
               contentfulAssets = Array.from(
@@ -137,61 +143,32 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
             }
             return contentfulAssets.find((a) => a.contentful_id === id)
           }
+          const references = []
 
-          const blockFields = []
-
-          const addRepeaterField = (property, data) => {
-            const type = `RepeaterField${capitalize(property.type)}`
-            blockFields.push({
-              __typename: type,
-              internal: {
-                type,
-              },
-              name: property.name,
-              ...data,
-            })
-          }
-
-          for (const p of repeaterFields) {
-            const { type, data } = p
+          for (const field of Object.values(data__REPEATER)) {
+            const { type, data } = field
             const value = JSON.parse(data)
             switch (type) {
               case 'richText':
-                const richTextReferences = []
-
                 for (const ref of value.references) {
                   if (ref.type === 'Asset') {
                     const asset = await getContentfulAsset(ref.contentful_id)
-                    richTextReferences.push(asset)
+                    references.push(asset)
                   } else {
-                    // todo find entries
+                    // Linked entries are not currently implemented
                   }
                 }
-
-                addRepeaterField(p, {
-                  richTextRaw: data,
-                  richTextReferences,
-                })
-                break
-              case 'text':
-                addRepeaterField(p, {
-                  text: value,
-                })
                 break
               case 'media':
-                const media = await getContentfulAsset(value.sys.id)
-                addRepeaterField(p, {
-                  media,
-                })
-                break
-              case 'boolean':
-                addRepeaterField(p, {
-                  boolean: value,
-                })
+                if (value?.sys?.id) {
+                  const asset = await getContentfulAsset(value.sys.id)
+                  references.push(asset)
+                }
                 break
             }
           }
-          return blockFields
+
+          return references
         },
       },
     }

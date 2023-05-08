@@ -96,46 +96,17 @@ class BlogPostTemplate extends React.Component<
 export default BlogPostTemplate
 
 export const pageQuery = graphql`
-  fragment Repeater on RepeaterField {
-    __typename
-    ... on RepeaterFieldText {
-      name
-      text
-    }
-    ... on RepeaterFieldRichText {
-      name
-      richTextRaw
-      richTextReferences {
-        __typename
-        ... on ContentfulAsset {
-          contentful_id
-          gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
-          resize(height: 630, width: 1200) {
-            src
-          }
-        }
-      }
-    }
-    ... on RepeaterFieldMedia {
-      name
-      media {
-        gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
-        resize(height: 630, width: 1200) {
-          src
-        }
-      }
-    }
-    ... on RepeaterFieldBoolean {
-      name
-      boolean
-    }
-  }
   fragment Carousel on ContentfulCarousel {
     title
 
     items {
-      blockFields {
-        ...Repeater
+      raw
+      references {
+        __typename
+        ... on ContentfulAsset {
+          contentful_id
+          gatsbyImage(layout: FULL_WIDTH, placeholder: BLURRED, width: 1280)
+        }
       }
     }
   }

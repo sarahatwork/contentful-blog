@@ -1,5 +1,5 @@
 import React from 'react'
-import { GatsbyImage, getImage } from 'gatsby-plugin-image'
+import { GatsbyImage, IGatsbyImageData, getImage } from 'gatsby-plugin-image'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
 import { BLOCKS } from '@contentful/rich-text-types'
 import { z } from 'zod'
@@ -10,6 +10,7 @@ type TProps = Queries.CarouselFragment
 const options = {
   renderNode: {
     [BLOCKS.EMBEDDED_ASSET]: (node) => {
+      console.log('===node', node)
       const { gatsbyImage, description } = node.data.target
       return <GatsbyImage image={getImage(gatsbyImage)!} alt={description} />
     },
@@ -28,9 +29,8 @@ const SCHEMA = z.array(
         })
       ),
     }),
-    image: z.object({
-      gatsbyImage: z.any(),
-    }),
+    image: z.record(z.any()),
+    altImage: z.record(z.any()).optional(),
     featured: z.boolean().optional(),
   })
 )
@@ -51,7 +51,16 @@ const Carousel: React.FC<TProps> = ({ title, items }) => {
               padding: 40,
             }}
           >
-            <GatsbyImage alt={'Missing alt'} image={entry.image.gatsbyImage!} />
+            <GatsbyImage
+              alt={'Missing alt'}
+              image={entry.image as IGatsbyImageData}
+            />
+            {entry.altImage && (
+              <GatsbyImage
+                alt={'Missing alt'}
+                image={entry.altImage as IGatsbyImageData}
+              />
+            )}
             <p>{renderRichText(entry.caption, options)}</p>
             {entry.photoCredit && <p>Photo courtesy of: {entry.photoCredit}</p>}
           </div>
