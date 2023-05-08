@@ -15,10 +15,11 @@ interface IProps<T> {
 
 const FIELD_SCHEMA = z.object({
   name: z.string(),
-  data: z.string(),
+  data: z.any(),
   type: z.union([
     z.literal('text'),
-    z.literal('media'),
+    z.literal('mediaSingle'),
+    z.literal('mediaMultiple'),
     z.literal('richText'),
     z.literal('boolean'),
   ]),
@@ -33,28 +34,43 @@ const useRepeater = <T>({ items, schema }: IProps<T>) => {
           Object.values(JSON.parse(item.raw)).reduce(
             (acc: Record<string, any>, field) => {
               const parsedField = FIELD_SCHEMA.parse(field)
-              const parsedFieldValue = JSON.parse(parsedField.data) || undefined
 
               switch (parsedField.type) {
                 case 'richText':
                   acc[parsedField.name] = {
-                    raw: parsedField.data,
+                    raw: JSON.stringify(parsedField.data),
                     references: item.references,
                   }
                   break
                 case 'boolean':
-                  acc[parsedField.name] = !!parsedFieldValue
+                  acc[parsedField.name] = !!parsedField.data
                   break
-                case 'media':
+                case 'mediaSingle':
                   const image =
-                    parsedFieldValue?.sys?.id &&
+                    parsedField.data?.sys?.id &&
                     item.references?.find(
-                      (r) => r.contentful_id === parsedFieldValue.sys.id
+                      (r) => r.contentful_id === parsedField.data.sys.id
                     )?.gatsbyImage
                   if (image) acc[parsedField.name] = image
                   break
+                case 'mediaMultiple':
+                  acc[parsedField.name] = parsedField.data.reduce(
+                    (mediaAcc, assetLink) => {
+                      const image = item.references?.find(
+                        (r) => r.contentful_id === assetLink.sys.id
+                      )?.gatsbyImage
+
+                      if (image) {
+                        mediaAcc.push(image)
+                      }
+
+                      return mediaAcc
+                    },
+                    []
+                  )
+                  break
                 default:
-                  acc[parsedField.name] = parsedFieldValue
+                  acc[parsedField.name] = parsedField.data ?? undefined
               }
               return acc
             },

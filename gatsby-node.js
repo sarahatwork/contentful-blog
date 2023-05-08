@@ -68,41 +68,6 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
   }
 }
 
-// exports.createSchemaCustomization = ({ actions }) => {
-//   const { createTypes } = actions
-
-//   createTypes(`
-//     type RepeaterFieldText implements Node {
-//       name: String!
-//       text: String
-//     }
-
-//     type RepeaterFieldMedia implements Node {
-//       name: String!
-//       media: ContentfulAsset
-//     }
-
-//     type RepeaterData implements Node {
-//       name: String!
-//       richTextRaw: String
-//       richTextReferences: [ContentfulAsset!]
-//     }
-
-//     type RepeaterFieldBoolean implements Node {
-//       name: String!
-//       boolean: Boolean
-//     }
-
-//     union RepeaterField =
-//       | RepeaterFieldText
-//       | RepeaterFieldMedia
-//       | RepeaterFieldRichText
-//       | RepeaterFieldBoolean
-//   `)
-// }
-
-const capitalize = (input) => input[0].toUpperCase() + input.slice(1)
-
 const repeaterBlocks = []
 
 exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
@@ -147,10 +112,10 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
 
           for (const field of Object.values(data__REPEATER)) {
             const { type, data } = field
-            const value = JSON.parse(data)
+
             switch (type) {
               case 'richText':
-                for (const ref of value.references) {
+                for (const ref of data.references) {
                   if (ref.type === 'Asset') {
                     const asset = await getContentfulAsset(ref.contentful_id)
                     references.push(asset)
@@ -159,10 +124,18 @@ exports.createResolvers = async ({ createResolvers, intermediateSchema }) => {
                   }
                 }
                 break
-              case 'media':
-                if (value?.sys?.id) {
-                  const asset = await getContentfulAsset(value.sys.id)
+              case 'mediaSingle':
+                if (data?.sys?.id) {
+                  const asset = await getContentfulAsset(data.sys.id)
                   references.push(asset)
+                }
+                break
+              case 'mediaMultiple':
+                for (const ref of data) {
+                  if (ref?.sys?.id) {
+                    const asset = await getContentfulAsset(ref.sys.id)
+                    references.push(asset)
+                  }
                 }
                 break
             }

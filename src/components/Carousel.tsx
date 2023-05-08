@@ -32,7 +32,7 @@ const SCHEMA = z.array(
       ),
     }),
     image: GATSBY_IMAGE_SCHEMA,
-    altImage: GATSBY_IMAGE_SCHEMA.optional(),
+    altImages: z.array(GATSBY_IMAGE_SCHEMA).optional(),
     featured: z.boolean().optional(),
   })
 )
@@ -57,11 +57,17 @@ const Carousel: React.FC<TProps> = ({ title, items }) => {
               alt={'Missing alt'}
               image={entry.image as IGatsbyImageData}
             />
-            {entry.altImage && (
-              <GatsbyImage
-                alt={'Missing alt'}
-                image={entry.altImage as IGatsbyImageData}
-              />
+            {entry.altImages && entry.altImages.length > 0 && (
+              <div style={{ display: 'flex' }}>
+                {entry.altImages.map((altImage, i) => (
+                  <GatsbyImage
+                    key={i}
+                    style={{ width: 100, height: 100 }}
+                    alt={'Missing alt'}
+                    image={altImage as IGatsbyImageData}
+                  />
+                ))}
+              </div>
             )}
             <p>{renderRichText(entry.caption, options)}</p>
             {entry.photoCredit && <p>Photo courtesy of: {entry.photoCredit}</p>}
